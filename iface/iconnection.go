@@ -20,9 +20,7 @@ type IConnection interface{
 	//获取远程客户端的TCP状态 IP Port
 	GetRemoteAddr() net.Addr
 	//发送数据
-	Send(data []byte)error
-
-
+	SendMsg(uint32,[]byte)error
 }
 
 //定义一个处理连接业务的方法

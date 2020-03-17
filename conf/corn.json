@@ -1,10 +1,6 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "es5",
-    "sourceMap": true
-  },
-  "exclude": [
-    "node_modules"
-  ]
+  "Name": "Corn ServerV0.5",
+  "Host": "0.0.0.0",
+  "TcpPort": 8000,
+  "MaxConn": 4096
 }
