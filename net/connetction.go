@@ -13,7 +13,8 @@ import (
 连接模块
 */
 type Connection struct {
-	//当前连接的所持可人
+	//当前连接的所属的server
+	TcpServer iface.IServer
 
 	Conn *net.TCPConn
 
@@ -35,9 +36,10 @@ type Connection struct {
 }
 
 //初始化连接模块的方法
-func NewConnection(conn *net.TCPConn, connID uint32, msgHandler iface.IMsgHandle) *Connection {
+func NewConnection(server iface.IServer, conn *net.TCPConn, connID uint32, msgHandler iface.IMsgHandle) *Connection {
 
 	c := &Connection{
+		TcpServer: server,
 		Conn:      conn,
 		ConnID:    connID,
 		MsgHandle: msgHandler,
@@ -45,6 +47,8 @@ func NewConnection(conn *net.TCPConn, connID uint32, msgHandler iface.IMsgHandle
 		ExitChan:  make(chan bool, 1),
 		msgChan:   make(chan []byte),
 	}
+	//将conn 加入到ConnManager中
+	c.TcpServer.GetConnMgr().Add(c)
 	return c
 }
 
@@ -95,11 +99,10 @@ func (c *Connection) StartReader() {
 			msg:  msg,
 		}
 
-
-		if utils.GlobalObject.WorkerPoolSize >0{
+		if utils.GlobalObject.WorkerPoolSize > 0 {
 			//开启了工作池机制
 			c.MsgHandle.SendMsgToTaskQueue(&req)
-		}else{
+		} else {
 			//执行注册的路由方法
 			go c.MsgHandle.DoMsgHandler(&req)
 		}
@@ -111,18 +114,18 @@ func (c *Connection) StartReader() {
 	写消息的goroutine，专门给用户将消息发送给客户端
 */
 
-func (c  *Connection)StartWriter(){
+func (c *Connection) StartWriter() {
 	fmt.Println("[Writer Goroutine is running]")
-	defer fmt.Println(c.GetRemoteAddr().String(),"Connection Writer exist!")
+	defer fmt.Println(c.GetRemoteAddr().String(), "Connection Writer exist!")
 
-	for{
+	for {
 		select {
 		case data := <-c.msgChan:
-			if _,err :=c.Conn.Write(data);err !=nil{
-				fmt.Println("Send data error:",err)
+			if _, err := c.Conn.Write(data); err != nil {
+				fmt.Println("Send data error:", err)
 				return
 			}
-		case  <-c.ExitChan:
+		case <-c.ExitChan:
 			//reader 关闭，指示退出
 			return
 		}
@@ -143,20 +146,17 @@ func (c *Connection) Start() {
 //停止连接
 func (c *Connection) Stop() {
 	fmt.Println("Conn stop().. ConnID:", c.ConnID)
-
 	//判断当前连接是否关闭
 	if c.IsClosed == true {
 		return
 	}
-
 	c.IsClosed = true
 	//尝试关闭
-
 	c.Conn.Close()
-
 	//告知Writer 关闭
-
 	c.ExitChan <- true
+	//将当前连接从ConnMgr中摘除掉
+	c.TcpServer.GetConnMgr().Remove(c)
 	//回收资源
 	close(c.ExitChan)
 	close(c.msgChan)
@@ -197,7 +197,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	}
 	//将数据发送到客户端
 
-	c.msgChan  <-binaryMsg
+	c.msgChan <- binaryMsg
 
 	return nil
 }

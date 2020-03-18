@@ -13,4 +13,6 @@ type IServer interface {
 	//给当前的路由添加一个处理路由方法
 	AddRouter(uint32, IRouter)
 
+	GetConnMgr() IConnManager
+
 }

@@ -20,6 +20,9 @@ type Server struct {
 	Port int
 	//当前server 的消息管理模块，用来绑定MsgId和对应的处理业务的API关系
 	MsgHandle iface.IMsgHandle
+
+	//连接管理器
+	ConnMgr iface.IConnManager
 }
 
 //启动
@@ -56,9 +59,16 @@ func (s *Server) Start() {
 				fmt.Printf("Accept err:%s", err)
 				continue
 			}
+			//最大连接个数的判断
+			if s.ConnMgr.Len() >=utils.GlobalObject.MaxConn{
+				//TODO 给用户发一个连接失败的消息
+				fmt.Println("connection server more than max limit! ,max limit sum:",utils.GlobalObject.MaxConn)
+				conn.Close()
+				continue
+			}
 			//已经建立了连接，测试回写echo
 			//将处理新的连接业务方法 和 conn 进行绑定，得到我们的连接模块对象
-			dealConn := NewConnection(conn, cid, s.MsgHandle)
+			dealConn := NewConnection(s,conn, cid, s.MsgHandle)
 			cid++
 			//启动当前的连接业务处理
 			go dealConn.Start()
@@ -71,8 +81,8 @@ func (s *Server) Start() {
 
 //停止
 func (s *Server) Stop() {
-	//TODO  停止连接框架
-
+	//停止连接框架,回收一些资源
+	s.ConnMgr.ClearConn()
 }
 
 func (s *Server) Serve() {
@@ -89,6 +99,14 @@ func (s *Server) AddRouter(msgID uint32,router iface.IRouter) {
 	fmt.Println("Add Router Success!!")
 }
 
+
+/*
+	获取当前server connection 管理器
+*/
+
+func (s *Server)GetConnMgr()iface.IConnManager{
+	return  s.ConnMgr
+}
 //初始化server的模块
 
 func NewServer(name string) iface.IServer {
@@ -98,6 +116,7 @@ func NewServer(name string) iface.IServer {
 		IP:        utils.GlobalObject.Host,
 		Port:      utils.GlobalObject.TcpPort,
 		MsgHandle: NewMsgHandle(),
+		ConnMgr:NewConnManager(),
 	}
 
 	return &s

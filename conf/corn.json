@@ -2,7 +2,7 @@
   "Name": "Corn ServerV0.5",
   "Host": "0.0.0.0",
   "TcpPort": 8000,
-  "MaxConn": 4096,
+  "MaxConn": 1,
   "WorkerPoolSize":16,
   "MaxWorkerTaskLen":2048
 }
