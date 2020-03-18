@@ -34,6 +34,10 @@ type GlobalObj struct {
 	MaxConn int //框架的最大连接数
 
 	MaxPackageSize uint32 //单词读包最大字节数
+
+	WorkerPoolSize uint32  //当前业务工作池的Goroutine数量
+	MaxWorkerTaskLen uint32  //允许最多开辟的worker
+
 }
 
 /*
@@ -66,6 +70,8 @@ func init() {
 		Host:    "0.0.0.0",
 		MaxConn:1000,
 		MaxPackageSize:4096,
+		WorkerPoolSize:8,
+		MaxWorkerTaskLen:1024,
 	}
 
 	//尝试从corn.json 加载配置文件

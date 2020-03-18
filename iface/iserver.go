@@ -11,6 +11,6 @@ type IServer interface {
 	Serve()
 	//添加的一个路由的方法
 	//给当前的路由添加一个处理路由方法
-	AddRouter(router IRouter)
+	AddRouter(uint32, IRouter)
 
 }

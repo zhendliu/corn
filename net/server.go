@@ -18,20 +18,22 @@ type Server struct {
 	IP string
 	//绑定端口
 	Port int
-	//当前server 注册router方法，server注册的连接对应的处理业务。
-
-	Router iface.IRouter
-
+	//当前server 的消息管理模块，用来绑定MsgId和对应的处理业务的API关系
+	MsgHandle iface.IMsgHandle
 }
 
 //启动
 func (s *Server) Start() {
-	fmt.Printf("[Corn] Server Name: %s,listenner at IP:%s ,Port:%d, is starting \n",s.Name,s.IP,s.Port)
-
+	fmt.Printf("[Corn] Server Name: %s,listenner at IP:%s ,Port:%d, is starting \n", s.Name, s.IP, s.Port)
 
 	//1 获取一个tcp的addr
 
 	go func() {
+
+		//0 开启消息队列及worker工作池
+
+		s.MsgHandle.StartWorkerPool()
+
 		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
 
 		if err != nil {
@@ -56,7 +58,7 @@ func (s *Server) Start() {
 			}
 			//已经建立了连接，测试回写echo
 			//将处理新的连接业务方法 和 conn 进行绑定，得到我们的连接模块对象
-			dealConn :=NewConnection(conn,cid,s.Router)
+			dealConn := NewConnection(conn, cid, s.MsgHandle)
 			cid++
 			//启动当前的连接业务处理
 			go dealConn.Start()
@@ -66,8 +68,6 @@ func (s *Server) Start() {
 
 	//阻塞的等待客户端连接
 }
-
-
 
 //停止
 func (s *Server) Stop() {
@@ -83,22 +83,22 @@ func (s *Server) Serve() {
 }
 
 //添加一个路由方法
-func (s  * Server)AddRouter(router iface.IRouter){
+func (s *Server) AddRouter(msgID uint32,router iface.IRouter) {
 
-	s.Router = router
+	s.MsgHandle.AddRouter(msgID,router)
 	fmt.Println("Add Router Success!!")
 }
 
 //初始化server的模块
 
 func NewServer(name string) iface.IServer {
-	 s :=Server{
-		Name: utils.GlobalObject.Name,
+	s := Server{
+		Name:      utils.GlobalObject.Name,
 		IPVersion: "tcp4",
 		IP:        utils.GlobalObject.Host,
 		Port:      utils.GlobalObject.TcpPort,
-		Router:nil,
+		MsgHandle: NewMsgHandle(),
 	}
 
-	 return  &s
+	return &s
 }
