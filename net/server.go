@@ -23,6 +23,11 @@ type Server struct {
 
 	//连接管理器
 	ConnMgr iface.IConnManager
+
+	//创建连接自后自动调用的Hook函数--OnConnStart
+	OnConnStart func(conn iface.IConnection)
+	//销毁连接之前自动调用的HOOK函数--OnConnStop
+	OnConnStop func (conn iface.IConnection)
 }
 
 //启动
@@ -120,4 +125,43 @@ func NewServer(name string) iface.IServer {
 	}
 
 	return &s
+}
+
+/*
+	注册OnConnStart 钩子函数的方法
+*/
+//注册OnConnStart 钩子函数的方法
+func (s *Server) SetOnConnStart(hookFunc func (conn iface.IConnection)){
+	s.OnConnStart = hookFunc
+}
+
+
+/*
+	注册 OnConnStop 钩子函数的方法
+*/
+//注册 OnConnStop 钩子函数的方法
+func (s *Server) SetOnConnStop(hookFunc func (conn iface.IConnection)){
+	s.OnConnStop = hookFunc
+}
+
+/*
+	调用OnConnStart 钩子函数的方法
+*/
+//调用OnConnStart 钩子函数的方法
+func (s *Server)CallOnConnStart(conn iface.IConnection){
+	if  s.OnConnStart !=nil{
+		fmt.Println("---->Call OnConnStart()....")
+		s.OnConnStart(conn)
+	}
+}
+
+/*
+	调用 OnConnStop 钩子函数的方法
+*/
+//调用 OnConnStop 钩子函数的方法
+func (s *Server)CallOnConnStop(conn iface.IConnection){
+	if  s.OnConnStop !=nil{
+		fmt.Println("---->Call OnConnStop()....")
+		s.OnConnStop(conn)
+	}
 }

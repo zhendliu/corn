@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 )
 
 /*
@@ -33,6 +34,11 @@ type Connection struct {
 
 	//消息id对应的业务处理API关系
 	MsgHandle iface.IMsgHandle
+
+	//连接属性的集合
+	property map[string]interface{}
+	//连接修改锁
+	propertyLock sync.RWMutex
 }
 
 //初始化连接模块的方法
@@ -46,6 +52,7 @@ func NewConnection(server iface.IServer, conn *net.TCPConn, connID uint32, msgHa
 		IsClosed:  false,
 		ExitChan:  make(chan bool, 1),
 		msgChan:   make(chan []byte),
+		property:  make(map[string]interface{}),
 	}
 	//将conn 加入到ConnManager中
 	c.TcpServer.GetConnMgr().Add(c)
@@ -141,6 +148,8 @@ func (c *Connection) Start() {
 	//TODO 启动从当前写数据的业务
 	go c.StartWriter()
 
+	//创建连接之后的处理hook
+	c.TcpServer.CallOnConnStart(c)
 }
 
 //停止连接
@@ -151,6 +160,9 @@ func (c *Connection) Stop() {
 		return
 	}
 	c.IsClosed = true
+
+	//触发开发者注册的连接销毁之前需要执行的业务
+	c.TcpServer.CallOnConnStop(c)
 	//尝试关闭
 	c.Conn.Close()
 	//告知Writer 关闭
@@ -200,4 +212,28 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	c.msgChan <- binaryMsg
 
 	return nil
+}
+
+func (c *Connection) SetProperty(key string, value interface{}) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+	c.property[key] = value
+}
+
+//获取连接属性
+func (c *Connection) GetProperty(key string) interface{} {
+	c.propertyLock.RLock()
+	defer c.propertyLock.RUnlock()
+	if value,ok :=c.property[key];ok{
+		return value
+	}
+	return nil
+}
+
+//移除连接属性
+func (c *Connection) RemoveProperty(key string) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	delete(c.property, key)
 }
