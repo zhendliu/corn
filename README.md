@@ -85,7 +85,7 @@ func main() {
 	for n := 3; n >= 0; n-- {
 		//发封包message消息
 		dp := net.NewDataPack()
-		msg, _ := dp.Pack(net.NewMsgPackage(0,[]byte("Zinx Client Test Message")))
+		msg, _ := dp.Pack(net.NewMsgPackage(0,[]byte("Corn Client Test Message")))
 		_, err := conn.Write(msg)
 		if err !=nil {
 			fmt.Println("write error err ", err)
@@ -129,7 +129,7 @@ func main() {
 ### Corn配置文件
 ```json
 {
-  "Name":"zinx v-0.10 demoApp",
+  "Name":"corn v-0.10 demoApp",
   "Host":"127.0.0.1",
   "TcpPort":7777,
   "MaxConn":3,
@@ -158,7 +158,7 @@ func main() {
 ```go
   func NewServer () iface.IServer 
 ```
-创建一个Zinx服务器句柄，该句柄作为当前服务器应用程序的主枢纽，包括如下功能：
+创建一个Corn服务器句柄，该句柄作为当前服务器应用程序的主枢纽，包括如下功能：
 
 #### 1)开启服务
 ```go
